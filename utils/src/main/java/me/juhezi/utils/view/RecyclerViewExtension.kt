@@ -202,11 +202,13 @@ fun RecyclerView.resetItemPosition(property: Property, hasAnim: Boolean) {
 }
 
 fun LinearLayoutManager.findViewCoordinateByPosition(position: Int,
-                                                     horizontalAction: (View.() -> Int) = { x.toInt() }, verticalAction: (View.() -> Int) = { y.toInt() }) =
+                                                     horizontalAction: (View.() -> Int) = { x.toInt() },
+                                                     verticalAction: (View.() -> Int) = { y.toInt() }) =
         if (orientation == OrientationHelper.HORIZONTAL) findViewByPosition(position).horizontalAction()
         else findViewByPosition(position).verticalAction()
 
-fun LinearLayoutManager.findNullableViewCoordinateByPosition(position: Int, horizontalAction: View?.() -> Unit, verticalAction: View?.() -> Unit) {
+fun LinearLayoutManager.findNullableViewCoordinateByPosition(position: Int, horizontalAction: View?.() -> Unit,
+                                                             verticalAction: View?.() -> Unit) {
     if (orientation == OrientationHelper.HORIZONTAL) findViewByPosition(position).horizontalAction()
     else findViewByPosition(position).verticalAction()
 }
