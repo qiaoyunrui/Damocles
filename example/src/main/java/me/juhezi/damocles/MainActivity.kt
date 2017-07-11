@@ -16,10 +16,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         var recyclerView = findViewById(R.id.recycler_view) as RecyclerView
-        recyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = object : RecyclerView.Adapter<ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
-                var itemView = LayoutInflater.from(parent?.context).inflate(R.layout.item_sample, parent, false)
+                val itemView = LayoutInflater.from(parent?.context).inflate(R.layout.item_sample, parent, false)
                 return ViewHolder(itemView)
             }
 

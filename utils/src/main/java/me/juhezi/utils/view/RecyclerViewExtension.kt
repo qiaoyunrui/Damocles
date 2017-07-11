@@ -52,10 +52,6 @@ class Property {
     var layoutManager: LinearLayoutManager? = null
 }
 
-//fun RecyclerView.disAllowFling() {
-//
-//}
-
 fun RecyclerView.transform(property: Property) = with(property) {
     if (layoutManager == null &&
             layoutManager !is LinearLayoutManager)  //必须是线性布局
