@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.OrientationHelper
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 
@@ -13,7 +14,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
  * 主要作用是 Recycler 改造成 View Pager
  * Created by Juhezi[juhezix@163.com] on 2017/7/9.
  */
-
+private const val TAG = "RecyclerViewExtension"
 
 class Property {
 
@@ -50,14 +51,17 @@ class Property {
     var action: ((Int) -> Unit)? = null    //监听事件
 
     var layoutManager: LinearLayoutManager? = null
+    override fun toString(): String {
+        return "Property(anchor=$anchor, position=$position)"
+    }
 }
 
 fun RecyclerView.transform(property: Property) = with(property) {
-    if (layoutManager == null &&
-            layoutManager !is LinearLayoutManager)  //必须是线性布局
+    if (getLayoutManager() == null &&
+            getLayoutManager() !is LinearLayoutManager)  //必须是线性布局
         return
-    layoutManager = layoutManager as LinearLayoutManager
-    orientation = property.layoutManager!!.orientation   //获取滑动的方向
+    layoutManager = getLayoutManager() as LinearLayoutManager
+    orientation = layoutManager!!.orientation   //获取滑动的方向
     addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         if (isFirst) {
             getAnchor(property)
@@ -88,23 +92,22 @@ fun RecyclerView.transform(property: Property) = with(property) {
             val distance = layoutManager!!
                     .findViewCoordinateByPosition(position) - anchor
             val absDistance = Math.abs(distance)
-            val p = (max - absDistance) / max
+            val p = (max - absDistance) / max.toFloat()
             val currentPercent = p * (1 - centerScalePercent) + centerScalePercent
             val otherPercent = (centerScalePercent - scalePercent) * (1 - p) + scalePercent
-            layoutManager!!.findNullableViewCoordinateByPosition(position,
+            layoutManager!!.findViewByPosition(position).noName(orientation == OrientationHelper.VERTICAL,
                     { scaleY = currentPercent },
                     { scaleX = currentPercent })
-            layoutManager!!.findNullableViewCoordinateByPosition(position + 1,
+            layoutManager!!.findViewByPosition(position - 1).noName(orientation == OrientationHelper.VERTICAL,
                     { scaleY = otherPercent },
                     { scaleX = otherPercent })
-            layoutManager!!.findNullableViewCoordinateByPosition(position - 1,
+            layoutManager!!.findViewByPosition(position + 1).noName(orientation == OrientationHelper.VERTICAL,
                     { scaleY = otherPercent },
                     { scaleX = otherPercent })
-            if (Math.abs(dx) <= scrollSpeedLimit &&
+            if (Math.abs(if (orientation == OrientationHelper.HORIZONTAL) dx else dy) <= scrollSpeedLimit &&
                     scrollState == RecyclerView.SCROLL_STATE_SETTLING &&
                     !isResetted &&
                     !isResetting) {
-                stopScroll()
                 resetItemPosition(property, true)
             }
             action?.invoke(property.position)   //执行监听事件
@@ -138,7 +141,7 @@ private fun getCenterItemPosition(property: Property) = with(property) {
     if (endPosition == layoutManager!!.itemCount - 1) endPosition--
     var distance = Int.MAX_VALUE
     for (i in startPosition..endPosition) {
-        val tempCoordinate = layoutManager!!.findViewCoordinateByPosition(position)
+        val tempCoordinate = layoutManager!!.findViewCoordinateByPosition(i)
         val tempDistance = Math.abs(tempCoordinate - anchor)
         if (tempDistance < distance) {
             distance = tempDistance
@@ -147,55 +150,53 @@ private fun getCenterItemPosition(property: Property) = with(property) {
     }
 }
 
-fun RecyclerView.resetItemPosition(property: Property, hasAnim: Boolean) {
-    fun resetItemPositionInternal(property: Property, hasAnim: Boolean) = with(property) {
-        if (isResetting) return
-        if (position <= 0) return
-        val coordinate = layoutManager!!.findViewCoordinateByPosition(position)
-        val distance = (coordinate - anchor)
-        if (hasAnim) {
-            val valueAnimator = ValueAnimator.ofInt(0, distance)
-            valueAnimator.interpolator = AccelerateDecelerateInterpolator()
-            valueAnimator.duration = animDuration
-            var lastDistance = 0
-            valueAnimator.addUpdateListener {
-                isResetting = true
-                val tempDistance = (it.animatedValue as Int) - lastDistance
-                if (orientation == OrientationHelper.HORIZONTAL) {
-                    scrollBy(tempDistance, 0)
-                } else {
-                    scrollBy(0, tempDistance)
-                }
-                lastDistance = it.animatedValue as Int
-            }
-            valueAnimator.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationRepeat(animation: Animator?) {
-                }
-
-                override fun onAnimationEnd(animation: Animator?) {
-                    isResetting = false
-                    isResetted = true
-                }
-
-                override fun onAnimationCancel(animation: Animator?) {
-                }
-
-                override fun onAnimationStart(animation: Animator?) {
-//                    isResetting = true
-                }
-
-            })
-            valueAnimator.start()
-        } else {
+fun RecyclerView.resetItemPosition(property: Property, hasAnim: Boolean) = with(property) {
+    if (isResetting) return
+    if (position <= 0) return
+    val coordinate = layoutManager!!.findViewCoordinateByPosition(position)
+    val distance = (coordinate - anchor)
+    if (hasAnim) {
+        val valueAnimator = ValueAnimator.ofInt(0, distance)
+        valueAnimator.interpolator = AccelerateDecelerateInterpolator()
+        valueAnimator.duration = animDuration
+        var lastDistance = 0
+        valueAnimator.addUpdateListener {
+            isResetting = true
+            val tempDistance = (it.animatedValue as Int) - lastDistance
             if (orientation == OrientationHelper.HORIZONTAL) {
-                scrollBy(distance, 0)
+                scrollBy(tempDistance, 0)
             } else {
-                scrollBy(0, distance)
+                scrollBy(0, tempDistance)
             }
+            lastDistance = it.animatedValue as Int
+        }
+        valueAnimator.addListener(object : Animator.AnimatorListener {
+            override fun onAnimationRepeat(animation: Animator?) {
+            }
+
+            override fun onAnimationEnd(animation: Animator?) {
+                isResetting = false
+                isResetted = true
+            }
+
+            override fun onAnimationCancel(animation: Animator?) {
+            }
+
+            override fun onAnimationStart(animation: Animator?) {
+//                    isResetting = true
+            }
+
+        })
+        valueAnimator.start()
+    } else {
+        if (orientation == OrientationHelper.HORIZONTAL) {
+            scrollBy(distance, 0)
+        } else {
+            scrollBy(0, distance)
         }
     }
-    resetItemPositionInternal(property, hasAnim)
 }
+
 
 fun LinearLayoutManager.findViewCoordinateByPosition(position: Int,
                                                      horizontalAction: (View.() -> Int) = { x.toInt() },
@@ -207,4 +208,12 @@ fun LinearLayoutManager.findNullableViewCoordinateByPosition(position: Int, hori
                                                              verticalAction: View?.() -> Unit) {
     if (orientation == OrientationHelper.HORIZONTAL) findViewByPosition(position).horizontalAction()
     else findViewByPosition(position).verticalAction()
+}
+
+fun View.noName(vertical: Boolean, horizontalAction: View.() -> Unit, verticalAction: View.() -> Unit) {
+    if (vertical) {
+        verticalAction()
+    } else {
+        horizontalAction()
+    }
 }
