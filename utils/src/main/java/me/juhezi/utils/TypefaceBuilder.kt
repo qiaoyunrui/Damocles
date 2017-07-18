@@ -19,5 +19,5 @@ class Wrapper(var path: String = "",
 }
 
 fun buildTypeface(buildAction: Wrapper.() -> Unit) =
-        Wrapper().apply(buildAction)
+        Wrapper().apply(buildAction).build()
 

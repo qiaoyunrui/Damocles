@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         textView.typeface = buildTypeface {
             path = FONT_ASSET_PATH
             assetManager = assets
-        }.build()
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = object : RecyclerView.Adapter<ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
